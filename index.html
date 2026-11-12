@@ -223,7 +223,7 @@ details p{margin:12px 0 0;font-size:18px;line-height:1.5;color:#37475A}
 </div>
 <div><label class="lbl" for="details">Freight details</label><textarea class="fld" id="details" name="details" placeholder="What are you moving or storing, and roughly how much?"></textarea></div>
 <button id="fmbtn" type="submit" style="height:56px;border:0;border-radius:980px;background:#FF9900;color:#00183d;font:600 18px -apple-system,'Inter',Arial,sans-serif;cursor:pointer">Send request</button>
-</form><p style="margin:28px 0 0;text-align:center;font-size:19px;color:#37475A">Prefer to talk? <a href="tel:+61406841900" style="color:#005F73;font-weight:600">0406 841 900</a></p>
+<p id="fmerr" role="alert" style="display:none;margin:0;text-align:center;font-size:16px;line-height:1.5;color:#B12704"></p></form><p style="margin:28px 0 0;text-align:center;font-size:19px;color:#37475A">Prefer to talk? <a href="tel:+61406841900" style="color:#005F73;font-weight:600">0406 841 900</a></p>
 </div>
 </section><div id="thanks" class="thx" role="dialog" aria-modal="true" aria-labelledby="thx-t" hidden>
 <div class="thx-c">
@@ -267,8 +267,9 @@ window.addEventListener('scroll',req,{passive:true});window.addEventListener('re
 </script>
 <script>
 (function(){
+var KEY="a42e9d5f-0cb0-49f1-bca7-ea7019c942db";
 var f=document.getElementById('quoteform');if(!f)return;
-var btn=document.getElementById('fmbtn'),m=document.getElementById('thanks'),cl=document.getElementById('thx-close'),last=null,label=btn.textContent;
+var btn=document.getElementById('fmbtn'),err=document.getElementById('fmerr'),m=document.getElementById('thanks'),cl=document.getElementById('thx-close'),last=null,label=btn.textContent;
 function openM(){last=document.activeElement;m.hidden=false;document.body.style.overflow='hidden';cl.focus()}
 function shut(){m.hidden=true;document.body.style.overflow='';if(last&&last.focus)last.focus()}
 cl.addEventListener('click',shut);
@@ -280,8 +281,19 @@ if(/[?&]sent=1/.test(location.search)){
 }
 f.addEventListener('submit',function(e){
  if(f.elements['_honey'].value){e.preventDefault();return}
- f.elements['_next'].value=location.href.split('#')[0].split('?')[0]+'?sent=1';
- btn.disabled=true;btn.textContent='Sending\u2026';
+ if(KEY.indexOf('PASTE')===0){
+  f.elements['_next'].value=location.href.split('#')[0].split('?')[0]+'?sent=1';
+  btn.disabled=true;btn.textContent='Sending\u2026';return;
+ }
+ e.preventDefault();
+ err.style.display='none';btn.disabled=true;btn.textContent='Sending\u2026';
+ var d={access_key:KEY,subject:'New quote request from the Sunrise Logistics website',from_name:'Sunrise Logistics website'};
+ new FormData(f).forEach(function(v,k){if(k.charAt(0)!=='_')d[k]=v});
+ fetch('https://api.web3forms.com/submit',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(d)})
+ .then(function(r){return r.json()})
+ .then(function(j){if(j&&j.success){f.reset();openM()}else{throw new Error(j&&j.message||'send failed')}})
+ .catch(function(x){console.error('Quote form error:',x);err.textContent='Sorry, we couldn\u2019t send your request. Please call 0406 841 900 or email info@sunriselogisticsaustralia.com.au.';err.style.display='block'})
+ .then(function(){btn.disabled=false;btn.textContent=label});
 });
 window.addEventListener('pageshow',function(ev){if(ev.persisted){btn.disabled=false;btn.textContent=label}});
 })();
